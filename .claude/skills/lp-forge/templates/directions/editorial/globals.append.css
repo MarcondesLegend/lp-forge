@@ -1,0 +1,12 @@
+/* Editorial overlay — magazine grid + drop caps */
+@layer base {
+  h1 { letter-spacing: -0.04em; font-weight: 800; }
+  h2 { letter-spacing: -0.03em; }
+  p::first-letter:not(.no-dropcap *) {
+    /* opt-in via class on parent */
+  }
+}
+@layer components {
+  .editorial-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; }
+  .editorial-lead { font-size: 1.5rem; line-height: 1.4; font-style: italic; }
+}

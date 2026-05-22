@@ -1,0 +1,11 @@
+/* Brutalist overlay — harsh, raw, no shadows */
+@layer base {
+  body { background: white; color: black; }
+  h1 { font-size: clamp(3rem, 10vw, 7rem); line-height: 0.9; }
+  a { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  * { box-shadow: none !important; }
+}
+@layer components {
+  .brutalist-box { border: 3px solid black; padding: 1.5rem; }
+  .brutalist-rule { border-top: 3px solid black; margin-block: 1.5rem; }
+}

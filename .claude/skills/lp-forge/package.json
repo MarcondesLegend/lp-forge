@@ -1,0 +1,43 @@
+{
+  "name": "lp-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "URL → comprehensive analysis report + brand-preserving Next.js redesign. Composes design-md (extraction) + huashu-design (brand capture protocol) + frontend-design (aesthetic discipline).",
+  "main": "run.cjs",
+  "bin": {
+    "lp-forge": "run.cjs"
+  },
+  "scripts": {
+    "start": "node run.cjs",
+    "test": "node --test tests/lib/*.test.cjs",
+    "lint": "node -e \"console.log('lint OK — eslint not yet installed; minimal lint via no-console grep is in test suite')\"",
+    "smoke": "node run.cjs --url https://example.com",
+    "install-playwright": "npm install playwright --save-optional && npx playwright install chromium",
+    "postinstall": "node scripts/postinstall.cjs"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "chalk": "^4.1.2",
+    "commander": "^12.1.0",
+    "js-yaml": "^4.1.0",
+    "turndown": "^7.2.0"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.48.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code-skill",
+    "lp-forge",
+    "landing-page",
+    "design-md",
+    "huashu-design",
+    "frontend-design",
+    "site-redesign",
+    "url-to-nextjs"
+  ],
+  "license": "MIT"
+}

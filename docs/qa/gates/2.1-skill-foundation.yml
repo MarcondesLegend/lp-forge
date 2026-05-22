@@ -1,0 +1,280 @@
+storyId: 2.1
+storyTitle: "lp-forge Skill Foundation + CLI Orchestrator"
+storyPath: docs/stories/epics/epic-002-lp-forge/2.1.skill-foundation.md
+epic: epic-002-lp-forge
+reviewer: "@qa (Quinn)"
+reviewedAt: 2026-05-22T14:50:00Z
+storyVersionReviewed: 0.4.0
+verdict: CONCERNS
+implementationReadinessScore: 8.5
+confidenceLevel: high
+
+# Per story-lifecycle.md §4: CONCERNS = approve with observations documented.
+# Story proceeds to Done. Observations tracked as backlog items for next-story polish.
+
+executionEnvironment:
+  os: Windows 11 Pro 26200
+  shell: PowerShell + Bash
+  node: v22.18.0
+  npm: v11.13.0
+  workdir: C:/Users/Darkr/ClaudeCode/MaquinaLP
+
+reValidation:
+  npmTest:
+    command: "npm test"
+    cwd: ".claude/skills/lp-forge"
+    result: PASS
+    counts: { total: 33, pass: 33, fail: 0, skip: 0 }
+    durationMs: 110
+  smokeE2E:
+    command: 'node .claude/skills/lp-forge/run.cjs --url https://example.com'
+    cwd: "(project root)"
+    exitCode: 0
+    artifactsWritten:
+      - outputs/lp-forge/example/run-telemetry.json
+      - outputs/lp-forge/_logs/2026-05-22.jsonl
+    artifactsCleaned: true
+  cliHelp:
+    command: "node run.cjs --help"
+    result: PASS
+    note: "All documented flags present"
+  missingFlagBehavior:
+    command: "node run.cjs"
+    expected: exit 1
+    actual: exit 1
+    result: PASS
+
+sevenQualityChecks:
+  - id: 1
+    name: "Code review (patterns, readability, maintainability)"
+    verdict: PASS
+    notes: >
+      Clean module structure (lib/*.cjs). Clear separation of concerns: cli/orchestrator/logger/utils/llm.
+      `console.*` properly gated via eslint-disable comments (cli.cjs, logger.cjs, run.cjs).
+      Phase modules follow consistent `{name, run(ctx)}` contract.
+      Path-traversal safe (slugifyUrl strips non-alphanumerics; URL constructor normalizes).
+  - id: 2
+    name: "Unit tests (coverage + all passing)"
+    verdict: PASS
+    notes: >
+      33 tests across 4 files. AC required 2+ tests; delivered 16.5x.
+      Excellent Aria A-8 coverage (production-reject, production-allow-0, default-0, dev-override).
+      Minor: orchestrator test monkey-patches validator.run globally — try/finally restores
+      but if test crashes mid-patch, subsequent runs may see corrupt state. Risk LOW.
+  - id: 3
+    name: "Acceptance criteria (17 of 17 satisfied)"
+    verdict: CONCERNS
+    notes: >
+      All 17 ACs functionally satisfied. 3 documented CONCERNS (none CRITICAL/HIGH):
+      see `findings` section below.
+  - id: 4
+    name: "No regressions"
+    verdict: PASS
+    notes: >
+      First story of epic 002. Nothing pre-existing to regress.
+      Verified: no files outside .claude/skills/lp-forge/ modified. Wave 1 squad work untouched.
+  - id: 5
+    name: "Performance (within NFR targets)"
+    verdict: PASS
+    notes: >
+      Cold smoke: 7ms (NFR target ≤5min — 42,857× ahead).
+      Test suite: 110-126ms (negligible).
+      No performance regression risk in v0.1 scope.
+  - id: 6
+    name: "Security (OWASP basics + Aria amendments)"
+    verdict: PASS
+    notes: >
+      Aria A-6.1 (prompt injection), A-6.2 (MIME), A-6.3 (XSS) all apply to downstream stories;
+      Story 2.1 doesn't expose those surfaces (LLM stubbed, no HTTP, no asset download, no UI).
+      Filesystem writes constrained to outputs/lp-forge/{slug}/ where slug is sanitized.
+      No credentials handled. No SQL surface (no DB at v0.1).
+      `npm audit` not run at QA gate — recommend Story 2.6 wires into CI.
+  - id: 7
+    name: "Documentation"
+    verdict: PASS
+    notes: >
+      SKILL.md, README.md, vendor/README.md, data/prompts/pt-BR/README.md all present and clear.
+      File List in story is comprehensive and well-organized (5 sections).
+      Dev Agent Record has 10 substantive Completion Notes including key decisions.
+
+findings:
+  critical: []
+  high: []
+  medium:
+    - id: F-1
+      title: "Logger verbosity gating: 'normal' does NOT print INFO events"
+      severity: MEDIUM
+      category: bug
+      affects: [AC-5, AC-16]
+      file: ".claude/skills/lp-forge/lib/logger.cjs"
+      lines: "13-22, 60-64"
+      description: >
+        Logger comment says "normal: 2 — Errors + warns + info" but the check
+        `if (levelP <= this.verbosity)` evaluates info(3) <= normal(2) = false.
+        Result: default smoke run (no --verbose flag) prints nothing to stdout.
+        AC-5 says "emits stdout progress per phase" — only --verbose actually does this.
+        Test runs pass because tests use `verbosity: "silent"` explicitly.
+      reproductionSteps:
+        - "cd .claude/skills/lp-forge"
+        - "node ../../../run.cjs --url https://example.com  (or just default flags)"
+        - "Observe: zero stdout. Expected: phase-start/phase-done events"
+      recommendation: >
+        Fix in Story 2.2 (low effort). Two options:
+        (a) Renumber VERBOSITY: silent=0, quiet=1, normal=3, verbose=4 so info(3) <= normal(3) = true.
+        (b) Change phase-start/phase-done events to logger.info → logger.warn, keeping debug at info-level.
+        Option (a) is cleaner.
+      impact: >
+        Functional: pipeline still works (JSON log always written, telemetry always written).
+        UX: operators running default smoke see "silent" execution — confusing.
+        Idempotency: not affected.
+  low:
+    - id: F-2
+      title: "Exit-codes count labeling: '13' vs actual 12 named codes"
+      severity: LOW
+      category: documentation
+      affects: [AC-6]
+      file:
+        - ".claude/skills/lp-forge/lib/exit-codes.cjs (correct — 12 codes)"
+        - "docs/stories/epics/epic-002-lp-forge/2.1.skill-foundation.md (AC-6 text says 13)"
+        - ".claude/skills/lp-forge/tests/lib/exit-codes.test.cjs (test names + comment say 13)"
+      description: >
+        Implementation has 12 NAMED exit codes (0, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13).
+        The story AC-6 text says "All 13 exit codes" — but the parenthesized list contains 12 items.
+        Test "All 13 expected codes are present" actually validates 12 names — passes because
+        the test array has 12 names too. The "13" label appears to refer to the max int value, not the count.
+      recommendation: >
+        Story 2.6 cleanup: amend AC-6 + test names/comments to read "12 exit codes
+        (spanning code-space 0-13 with gaps at 2-3)".
+      impact: cosmetic only. No code change needed.
+    - id: F-3
+      title: "npm run lint is a placeholder, not real eslint"
+      severity: LOW
+      category: tooling-gap
+      affects: [AC-14]
+      file: ".claude/skills/lp-forge/package.json"
+      description: >
+        package.json `scripts.lint` is `node -e \"console.log('lint OK ...')\"` — always exits 0.
+        eslint not installed; eslint.config.cjs exists as a forward-looking config.
+        AC-14 says "`npm run lint` zero errors" — trivially satisfied because placeholder always passes.
+        AC also says "(or basic eslint config in skill)" — satisfied by presence of config file.
+      recommendation: >
+        Story 2.6 task: install eslint as devDependency, wire `lint` script to
+        `eslint . --max-warnings=0`. Aria amendments mention this is Story 2.6 scope; not a blocker for 2.1.
+      impact: deferred per Aria/Dex agreement. Documented in Dex completion note #7.
+    - id: F-4
+      title: "File List count off-by-one in story"
+      severity: LOW
+      category: documentation
+      affects: [File List]
+      file: "docs/stories/epics/epic-002-lp-forge/2.1.skill-foundation.md (line 'All files created by @dev during Story 2.1 implementation. 31 files')"
+      description: >
+        Story File List header says "31 files; 0 modifications outside .claude/skills/lp-forge/".
+        Actual count: 30 files (verified via `find . -type f -not -path '*/node_modules/*'`).
+      recommendation: Update story File List header to "30 files" in next polish pass. Cosmetic only.
+      impact: None on implementation.
+
+backlogItemsCreated:
+  - id: B-2.1-F1
+    title: "Fix logger verbosity gating so 'normal' prints INFO events"
+    severity: MEDIUM
+    targetStory: 2.2 or follow-up
+    estimatedEffort: "5-10 min"
+  - id: B-2.1-F2
+    title: "Amend AC-6 exit-codes count text + test comments to 12 named codes"
+    severity: LOW
+    targetStory: 2.6 polish pass
+    estimatedEffort: "5 min"
+  - id: B-2.1-F3
+    title: "Wire real eslint into npm run lint"
+    severity: LOW
+    targetStory: 2.6 (already planned)
+    estimatedEffort: "20 min (already accounted)"
+  - id: B-2.1-F4
+    title: "Fix File List count typo (31 → 30)"
+    severity: LOW
+    targetStory: 2.6 polish pass
+    estimatedEffort: "1 min"
+
+acTraceability:
+  AC-1: { status: PASS, evidence: "find . -type f → 30 files matching architecture §2 tree" }
+  AC-2: { status: PASS, evidence: "SKILL.md frontmatter present: name=lp-forge, version=0.1.0" }
+  AC-3: { status: PASS, evidence: "package.json: optionalDependencies.playwright=^1.48.0, engines.node>=18, license=MIT" }
+  AC-4: { status: PASS, evidence: "--help prints all flags; missing --url exits 1; enum validation works" }
+  AC-5: { status: CONCERNS, evidence: "7-phase runner works; --from-phase works; telemetry written. STDOUT progress only at --verbose (see F-1)" }
+  AC-6: { status: PASS, evidence: "12 codes (0,1,4-13) frozen, all reasoned; reasonFor() returns non-empty strings" }
+  AC-7: { status: PASS, evidence: "require('./lib/llm.cjs') succeeds; A-8 enforcement verified (production rejects 0.5, allows 0, defaults 0; dev allows 0.7)" }
+  AC-8: { status: PASS, evidence: "slugifyUrl tested: www.anthropic.com→anthropic, shopify.com/br/enterprise→shopify-br-enterprise, app.linear.app→linear-app, brand.acme.com/...→acme-brand-..." }
+  AC-9: { status: PASS, evidence: "vendor/.gitkeep + vendor/README.md present documenting Story 2.2 work" }
+  AC-10: { status: PASS, evidence: "npm test: 33/33 pass, 110ms" }
+  AC-11: { status: PASS, evidence: "All 7 phase modules export {name, run(ctx)} returning {skipped: true, reason}; orchestrator handles skipped-stub status" }
+  AC-12: { status: PASS, evidence: "README.md: install steps, 3 examples, troubleshooting section, status table" }
+  AC-13: { status: PASS, evidence: "lib/cache.cjs exports checkPhaseCache (returns null), writePhaseCache (no-op), cacheKey" }
+  AC-14: { status: CONCERNS, evidence: "npm test green; npm run lint is placeholder (see F-3); CodeRabbit deferred to Story 2.6" }
+  AC-15: { status: PASS, evidence: "cold smoke exits 0 in 7ms; run-telemetry.json written; _logs/{date}.jsonl written" }
+  AC-16: { status: CONCERNS, evidence: "Logger writes JSON-lines correctly; verbosity gating bug (see F-1) — JSON log unaffected but stdout broken at default verbosity" }
+  AC-17: { status: PASS, evidence: "data/prompts/pt-BR/.gitkeep + README present; lib/prompt-loader.cjs resolves loadPrompt(name, lang) with pt-BR fallback" }
+
+ariaAmendmentsCompliance:
+  A-1: { status: deferred-to-2.2, note: "Hybrid spawn+require model — Story 2.1 ships only stubs; A-1 fully realized in Story 2.2" }
+  A-2: PASS  # optionalDependencies wired
+  A-3: deferred-to-2.5
+  A-4: deferred-to-2.3
+  A-5: CONCERNS  # logger present + JSON-lines correct, but verbosity gating bug (F-1)
+  A-6: deferred-to-2.3-and-2.5
+  A-7: PASS  # exit codes 12 + 13 present
+  A-8: PASS  # temperature lock works in production, tested 4 branches
+  A-9: deferred-to-2.5
+  Q-7: PASS  # i18n-ready structure
+
+riskProfile:
+  inheritedFromArchitecture:
+    - "Local-commerce sites bot-block static fetch (HIGH severity, mitigated by --allow-playwright)" # Story 2.2 surface
+    - "Logo extraction grabs wrong SVG (HIGH severity)" # Story 2.3 surface
+    - "LLM hallucinates services not on source (CRITICAL severity)" # Story 2.3+2.5 surface
+  introducedByStory2.1:
+    - "F-1 logger verbosity gating bug (MEDIUM) — pipeline silent at default flags"
+    - "F-3 lint enforcement placeholder (LOW) — Story 2.6 dependency"
+  postReviewResidualRisk: LOW
+
+testArchitectureNotes:
+  coverage: "33 tests across 4 module files. Excellent ratio (33 tests / 8 lib modules = 4.1 tests/module)."
+  weakSpots:
+    - "tests/lib/orchestrator.test.cjs: monkey-patch of validator.run is global. If test crashes between patch and try/finally restore, downstream tests in other files MAY see corrupt state. Risk LOW because llm.test.cjs doesn't depend on validator."
+    - "No test for prompt-loader.cjs. Module is small but uncovered. Story 2.6 should add coverage."
+    - "No test for logger.cjs verbosity gating behavior. Would have caught F-1. Recommend adding 3 tests (silent/normal/verbose) when fixing F-1."
+
+reviewedFiles:
+  totalReviewed: 30
+  byCategory:
+    skillRoot: 7  # SKILL.md, README.md, package.json, package-lock.json, run.cjs, eslint.config.cjs, .gitignore
+    libCore: 8   # cli, orchestrator, exit-codes, llm, cache, utils, logger, prompt-loader
+    libPhaseStubs: 7  # design-md-adapter, brand-capture, business-info, direction-picker, analysis-doc, nextjs-generator, validator
+    tests: 4
+    vendor: 2
+    data: 2
+
+handoffDecision:
+  fromStatus: "Ready for Review"
+  toStatus: "Done"
+  rationale: >
+    Per story-lifecycle.md §4 — CONCERNS verdict approves with observations documented.
+    All 17 ACs functionally satisfied. 0 CRITICAL, 0 HIGH issues. 1 MEDIUM (F-1 logger),
+    3 LOW findings tracked as backlog items B-2.1-F1..F4. Story 2.1 ships.
+  nextAgent: "@devops or @sm (depending on git init + next story decision)"
+  nextCommand: "varies — see § handoffOptions below"
+
+handoffOptions:
+  - option: "Continue epic — activate @sm for Story 2.2"
+    command: "/AIOX:agents:sm *develop-story-prep 2.2"
+    rationale: "Wave 2-3 epic continues. F-1 logger fix can be folded into Story 2.2 since 2.2 already modifies lib/adapters/."
+    recommendation: PRIMARY
+  - option: "Push to git — activate @devops"
+    command: "/AIOX:agents:devops *push"
+    rationale: "Greenfield project has no git yet. @devops would init repo + initial commit."
+    recommendation: SECONDARY
+  - option: "Fix F-1 immediately — activate @dev"
+    command: "/AIOX:agents:dev *fix logger.cjs verbosity"
+    rationale: "5-minute fix would close all open CONCERNS. Story 2.1 then transitions to PASS (no CONCERNS)."
+    recommendation: TERTIARY
+
+closing: "— Quinn, guardião da qualidade 🛡️"

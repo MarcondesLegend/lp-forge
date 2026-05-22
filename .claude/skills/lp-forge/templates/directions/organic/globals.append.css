@@ -1,0 +1,10 @@
+/* Organic overlay — warm, natural, gentle motion */
+@layer base {
+  body { background: #fbf7f1; }
+  h1, h2 { font-weight: 400; line-height: 1.15; }
+}
+@layer components {
+  .organic-card { border-radius: 0.75rem; background: white; padding: 1.5rem;
+                  box-shadow: 0 2px 12px rgba(70, 50, 30, 0.06); }
+  .organic-leaf { color: var(--brand-primary); opacity: 0.6; }
+}

@@ -1,0 +1,29 @@
+# Curated display+body font pairs per aesthetic direction.
+# When source site uses forbidden-fonts.yaml (Inter/Roboto/Arial/system), generator picks from here.
+# Format: { display, body, source: "google" | "system" | "local" }
+
+editorial:
+  - { display: '"Playfair Display", serif', body: '"Source Sans Pro", sans-serif', source: google }
+  - { display: '"DM Serif Display", serif', body: '"DM Sans", sans-serif', source: google }
+  - { display: '"EB Garamond", serif', body: '"Lato", sans-serif', source: google }
+
+industrial:
+  - { display: '"JetBrains Mono", monospace', body: '"Inter", sans-serif', source: google }
+  - { display: '"IBM Plex Mono", monospace', body: '"IBM Plex Sans", sans-serif', source: google }
+
+luxury:
+  - { display: '"Cormorant Garamond", serif', body: '"Montserrat", sans-serif', source: google }
+  - { display: '"Cinzel", serif', body: '"Cormorant", sans-serif', source: google }
+
+playful:
+  - { display: '"Fraunces", serif', body: '"DM Sans", sans-serif', source: google }
+  - { display: '"Recoleta", serif', body: '"Nunito", sans-serif', source: google }
+  - { display: '"Caveat", cursive', body: '"Karla", sans-serif', source: google }
+
+brutalist:
+  - { display: '"Space Grotesk", sans-serif', body: '"Space Mono", monospace', source: google }
+  - { display: '"Archivo Black", sans-serif', body: '"Archivo", sans-serif', source: google }
+
+organic:
+  - { display: '"Crimson Pro", serif', body: '"Lora", serif', source: google }
+  - { display: '"Newsreader", serif', body: '"Karla", sans-serif', source: google }

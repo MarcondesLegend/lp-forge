@@ -1,0 +1,8 @@
+node_modules/
+outputs/
+vendor/design-md/node_modules/
+vendor/design-md/outputs/
+*.log
+.env
+.env.local
+.DS_Store

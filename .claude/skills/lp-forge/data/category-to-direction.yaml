@@ -1,0 +1,77 @@
+# Business category → aesthetic direction mapping
+# Used by lib/direction-picker.cjs (Story 2.4).
+# Multi-value: when 2+ directions listed, picker uses fingerprint to break tie.
+# Fallback (uncategorized): editorial (safe default for SMBs in BR).
+
+mappings:
+  # Food & beverage
+  restaurante: [editorial, playful]
+  café: [editorial, organic]
+  cafeteria: [editorial, organic]
+  padaria: [editorial, organic]
+  pizzaria: [editorial, playful]
+  bar: [brutalist, editorial]
+  hamburgueria: [playful, brutalist]
+  sorveteria: [playful]
+  doceria: [playful, luxury]
+
+  # Services — technical
+  oficina: [industrial]
+  "oficina mecânica": [industrial]
+  funilaria: [industrial]
+  marcenaria: [industrial, organic]
+  serralheria: [industrial]
+  construção: [industrial]
+  reforma: [industrial, organic]
+
+  # Services — personal care
+  "salão de beleza": [luxury, playful]
+  barbearia: [brutalist, industrial]
+  cabeleireiro: [luxury, playful]
+  estética: [luxury, organic]
+  spa: [luxury, organic]
+  manicure: [playful, luxury]
+
+  # Services — professional
+  clínica: [luxury, organic]
+  consultório: [luxury, editorial]
+  advocacia: [luxury, editorial]
+  contabilidade: [editorial, industrial]
+  arquitetura: [editorial, luxury]
+
+  # Retail
+  loja: [editorial, playful]
+  "loja de roupas": [luxury, editorial, playful]
+  moda: [luxury, editorial]
+  joalheria: [luxury]
+  ótica: [editorial, luxury]
+  eletrônicos: [industrial, editorial]
+  papelaria: [playful, editorial]
+
+  # Education & health
+  escola: [playful, editorial]
+  "escola infantil": [playful]
+  curso: [editorial, industrial]
+  academia: [brutalist, industrial]
+  yoga: [organic]
+  pilates: [organic, luxury]
+  fisioterapia: [organic, luxury]
+
+  # Other
+  "pet shop": [playful, organic]
+  veterinária: [organic, luxury]
+  "produtos naturais": [organic]
+  livraria: [editorial]
+  floricultura: [organic, playful]
+  imobiliária: [editorial, luxury]
+
+fallback: editorial
+
+# Tie-break logic (consumed by direction-picker.cjs):
+# 1. If exactly 1 direction listed → use it
+# 2. If 2+: cross-reference style-fingerprint.json archetype
+#    - shadcn-neutral / carbon-enterprise → industrial
+#    - apple-glass / polaris-friendly → luxury or editorial
+#    - marketing-gradient → playful
+#    - editorial-magazine → editorial
+#    - other → first entry in array (alphabetic stable)

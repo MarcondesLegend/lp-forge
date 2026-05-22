@@ -1,0 +1,10 @@
+/* Playful overlay — rounded, color-rich, energetic */
+@layer base {
+  h1, h2 { font-weight: 700; }
+}
+@layer components {
+  .playful-card { border-radius: 1.25rem; padding: 1.5rem; transition: transform 0.2s ease; }
+  .playful-card:hover { transform: translateY(-4px); }
+  .playful-pill { display: inline-flex; padding: 0.25rem 0.75rem; border-radius: 9999px;
+                  background: var(--brand-primary); color: white; font-size: 0.875rem; }
+}

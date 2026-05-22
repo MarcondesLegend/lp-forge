@@ -1,0 +1,10 @@
+node_modules/
+outputs/
+*.log
+.env
+.env.local
+.DS_Store
+.claude/skills/lp-forge/vendor/design-md/node_modules/
+.claude/skills/lp-forge/vendor/design-md/outputs/
+.claude/skills/lp-forge/node_modules/
+.claude/skills/lp-forge/outputs/

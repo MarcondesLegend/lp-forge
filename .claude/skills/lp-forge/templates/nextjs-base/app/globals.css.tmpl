@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-primary: {{primaryColor}};
+  --brand-accent: {{accentColor}};
+  --brand-ink: {{inkColor}};
+  --brand-surface: {{surfaceColor}};
+
+  --font-display: {{fontDisplay}};
+  --font-body: {{fontBody}};
+}
+
+html, body {
+  font-family: var(--font-body);
+  color: var(--brand-ink);
+  background: var(--brand-surface);
+  text-wrap: pretty;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

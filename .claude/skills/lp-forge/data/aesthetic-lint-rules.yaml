@@ -1,0 +1,43 @@
+# Aesthetic linter rules (Aria A-6.3 inline + frontend-design manifesto encoded).
+# Used by lib/aesthetic-lint.cjs to scan generated redesign/ for AI-slop patterns.
+
+critical:
+  - id: PURPLE-GRADIENT
+    name: "Purple gradient hero"
+    pattern: 'linear-gradient\([^)]*(?:#[a-f0-9]*[ab][0-9a-f]{4}|purple|violet|#a78bfa|#8b5cf6)[^)]*(?:white|#fff|#ffffff)'
+    flags: i
+    rationale: "AI default 'tech-look' gradient. Hero must commit to direction-specific atmosphere."
+
+  - id: EMOJI-HEADING
+    name: "Emoji in heading or section label"
+    pattern: '<h[1-6][^>]*>[^<]*[\x{1F300}-\x{1F9FF}\x{2600}-\x{27BF}]'
+    rationale: "Emoji decoration in headings signals lack of typographic confidence."
+    note: "regex flag u required by linter; lib invokes with /u"
+
+  - id: FORBIDDEN-DISPLAY-FONT
+    name: "Inter/Roboto/Arial as display font"
+    pattern: 'font-family:\s*[''"]?(?:Inter|Roboto|Arial|Helvetica)[''"]?\s*;[^}]*font-size:\s*[2-9][0-9]+'
+    rationale: "AI-default display fonts dilute brand identity. Use curated-font-pairs.yaml instead."
+
+  - id: CSS-SILHOUETTE-LOGO
+    name: "CSS-painted logo silhouette instead of real image"
+    pattern: 'class="[^"]*(?:logo|brand)[^"]*"[^>]*>(?!\s*<img|\s*<svg.*src=)'
+    rationale: "Logo must be referenced as real <img src='/brand/logo.svg'/>, not CSS-painted."
+
+warning:
+  - id: PALETTE-NOISE
+    name: "Too many distinct colors (signal of indecision)"
+    pattern: '#[0-9a-fA-F]{6}'
+    threshold: 8
+    rationale: "Sites with 8+ distinct hex values lack palette commitment."
+
+  - id: PLACEHOLDER-REMAINING
+    name: "Template placeholder leftover"
+    pattern: '\{\{[a-zA-Z_]+\}\}|Lorem ipsum|placeholder|TODO:'
+    flags: i
+    rationale: "Unfilled template placeholder reached production."
+
+  - id: ICON-PER-HEADING
+    name: "FontAwesome/material icon for every heading (slop pattern)"
+    pattern: '<h[1-6][^>]*>\s*<i\s+class="[^"]*(?:fa-|material-icons)'
+    rationale: "Icon-per-heading is AI-pattern; pick which 1-2 sections deserve iconography."

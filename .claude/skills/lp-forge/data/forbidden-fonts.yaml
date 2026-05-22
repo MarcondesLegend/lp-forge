@@ -1,0 +1,21 @@
+# Forbidden display fonts (Aria A-3 + frontend-design manifesto).
+# When source site uses these as display, generator picks from curated-font-pairs.yaml.
+# Exception: if brand-spec.md explicitly retains the font (brand signature), it stays.
+
+display_forbidden:
+  - Inter
+  - Roboto
+  - Arial
+  - Helvetica
+  - "system-ui"
+  - "-apple-system"
+  - sans-serif    # raw fallback only
+  - "Times New Roman"
+
+# These can stay as body fonts (they're legitimate body choices, just not display).
+body_acceptable:
+  - Inter
+  - Roboto
+  - Lato
+  - "Open Sans"
+  - "Source Sans Pro"

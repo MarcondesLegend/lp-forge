@@ -1,0 +1,9 @@
+/* Luxury overlay — refined serif + generous spacing */
+@layer base {
+  body { letter-spacing: 0.01em; }
+  h1, h2 { font-weight: 400; letter-spacing: -0.01em; }
+  section { padding-block: 6rem; }
+}
+@layer components {
+  .luxury-rule { border-top: 1px solid var(--brand-ink); width: 4rem; margin-block: 2rem; }
+}
