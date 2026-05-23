@@ -68,11 +68,47 @@ Gere a copy do site novo em formato JSON estrito. SAÍDA = APENAS JSON, sem text
    - brutalist: cru, direto, sem floreio, frases curtas
    - organic: humano, acolhedor, sereno
 
-3. **Headline forte:**
+3. **Headline forte — REGRA CRÍTICA:**
    - NÃO use "Bem-vindo a [nome]" — clichê morto
-   - NÃO use só o nome do negócio. Diga o BENEFÍCIO ou COMPROMISSO específico.
-   - Exemplos bons: "Sorriso planejado, em consultório próprio.", "Mecânica honesta de Volkswagen.", "Café que não esconde o grão."
-   - Exemplos ruins: "Bem-vindo à clínica X!", "Excelência em qualidade."
+   - NÃO use "Transforme seu sorriso com excelência" ou variações genéricas de odontologia
+   - NÃO use "Excelência em cada detalhe" — frase template já usada demais
+   - NÃO use só o nome do negócio. Diga o BENEFÍCIO ou COMPROMISSO específico extraído do site fonte (use serviços, cidade, qualidade prometida).
+   - SEMPRE referencie algo CONCRETO do negócio: especialidade dominante, cidade, tipo de cliente, anos de tradição.
+
+   ### Exemplos por categoria
+
+   **Clínica odontológica em cidade pequena:**
+   - ✅ "Implantes que duram, no centro de Nova Serrana."
+   - ✅ "A clínica dos dentes restos. {{city}}, 12 anos."
+   - ✅ "Plano de tratamento sem surpresa. {{businessName}}."
+   - ❌ "Transforme seu sorriso com excelência." (genérico demais)
+
+   **Restaurante:**
+   - ✅ "A casa do leitão à pururuca. Almoço todo dia."
+   - ✅ "Comida de comadre, servida no centro de {{city}}."
+   - ❌ "Sabor que conquista." (genérico)
+
+   **Oficina mecânica:**
+   - ✅ "Mecânica honesta de Volkswagen. {{city}}, há 20 anos."
+   - ✅ "Diagnóstico antes do orçamento. Sempre."
+   - ❌ "Qualidade que você merece." (vazio)
+
+   **Salão de beleza:**
+   - ✅ "Coloração mestra. Sem refazer em casa."
+   - ✅ "O salão de quem leva 2h pra escolher o tom."
+   - ❌ "Beleza que liberta." (clichê)
+
+   **Café:**
+   - ✅ "Grão torrado no balcão. {{city}}."
+   - ✅ "Café que não esconde o grão."
+   - ❌ "Mais que um café, uma experiência." (slop)
+
+   **Cínica médica/estética:**
+   - ✅ "Estética íntima feminina, com discrição."
+   - ✅ "{{specialty}}, com {{name_of_doctor}} desde {{year}}."
+   - ❌ "Cuidando da sua saúde com carinho."
+
+   Você DEVE inventar um headline desse tipo, específico, baseado nos dados capturados. Se o site fonte não dá detalhes específicos, escolha 1 (UMA) das características inferidas e marque `[INFERIDO]` no campo `secondary` (não primary).
 
 4. **Subheadline:** 1 frase. Conecta o headline ao serviço/cidade/diferencial. Termina com gancho pro CTA.
 

@@ -33,6 +33,8 @@ function buildProgram() {
     .option("--lang <lang>", `Language for prompts/output (supported: ${KNOWN_LANGS.join(", ")})`, "pt-BR")
     .option("--out <dir>", "Output directory (default: outputs/lp-forge/{slug}/)")
     .option("--direction <name>", `Force aesthetic direction (one of: ${KNOWN_DIRECTIONS.join(", ")})`)
+    .option("--primary-color <hex>", "Force primary brand color (6-digit hex like #c3ae5c) — overrides synthesized")
+    .option("--accent-color <hex>", "Force accent color (6-digit hex)")
     .option("--from-phase <N>", "Resume from phase N (1-7)", v => Number.parseInt(v, 10))
     .option("--no-reuse", "Disable phase-reuse cache (force cold run)")
     .option("--allow-playwright", "Enable Playwright fallback when static fetch hits content-gate")
@@ -75,6 +77,14 @@ function parseArgs(argv) {
   if (opts.direction && !KNOWN_DIRECTIONS.includes(opts.direction)) {
     errors.push(`Invalid --direction: ${opts.direction}. Must be one of: ${KNOWN_DIRECTIONS.join(", ")}`);
   }
+  // Validate hex format for color overrides
+  const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+  if (opts.primaryColor && !HEX_RE.test(opts.primaryColor)) {
+    errors.push(`Invalid --primary-color: ${opts.primaryColor}. Must be 6-digit hex like #c3ae5c`);
+  }
+  if (opts.accentColor && !HEX_RE.test(opts.accentColor)) {
+    errors.push(`Invalid --accent-color: ${opts.accentColor}. Must be 6-digit hex like #1a1a1a`);
+  }
   if (opts.lang && !KNOWN_LANGS.includes(opts.lang)) {
     errors.push(`Invalid --lang: ${opts.lang}. Only ${KNOWN_LANGS.join(", ")} supported in v0.1`);
   }
@@ -111,6 +121,8 @@ function parseArgs(argv) {
     lang: opts.lang,
     outDir: opts.out || null,                // resolved by orchestrator
     direction: opts.direction || null,       // null → auto-pick (phase 4)
+    primaryColor: opts.primaryColor || null, // operator override (Tier 0)
+    accentColor: opts.accentColor || null,
     fromPhase: opts.fromPhase || 1,
     noReuse: opts.reuse === false,           // commander inverts --no-reuse
     allowPlaywright: !!opts.allowPlaywright,

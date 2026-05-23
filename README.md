@@ -5,8 +5,9 @@
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-v0.1.1-blue)](.claude/skills/lp-forge/MANUAL.md)
+[![Status](https://img.shields.io/badge/status-v0.1.2-blue)](CHANGELOG.md)
 [![Tests](https://img.shields.io/badge/tests-103%2F104%20pass-brightgreen)](#)
+[![OpenAI](https://img.shields.io/badge/openai-gpt--4o--mini-purple)](#)
 
 ---
 
@@ -144,10 +145,11 @@ node .claude/skills/lp-forge/run.cjs \
 
 ## Casos validados (já testados)
 
-| Site | Categoria | Stack | Resultado |
-|---|---|---|---|
-| `ortoimplant.com.br` | Clínica odontológica | Tailwind v4 SPA | ✅ Playwright + LLM analysis 1403 palavras + redesign luxury #c3ae5c |
-| `clinicamarianalourenco.com.br` | Clínica | WordPress | ✅ Soft-success + LLM analysis 1437 palavras + redesign luxury |
+| Site | Categoria | Stack | Hero gerado | Resultado |
+|---|---|---|---|---|
+| `ortoimplant.com.br` | Clínica odontológica | Tailwind v4 SPA | "Implantes de qualidade em Nova Serrana" | ✅ Playwright + logo real .webp + análise 1379 palavras |
+| `clinicamarianalourenco.com.br` | Clínica | WordPress | "Sorriso perfeito com tecnologia de ponta em São Paulo" | ✅ Soft-success + logo Tier 1 + análise 1410 palavras |
+| `salaopiazza.com.br` | Salão de beleza | — | "Beleza refinada em São Paulo, há 24 anos" | ✅ Direction luxury + análise 1391 palavras |
 
 ## Flags principais
 
@@ -161,6 +163,8 @@ node .claude/skills/lp-forge/run.cjs \
 | `--provider` | `openai` (default), `openrouter`, `claude-cli` |
 | `--model` | `gpt-4o-mini` (default), `gpt-4o`, `gpt-4.1`, `o3-mini` |
 | `--allow-playwright` | Habilita render via browser para SPAs / sites com bot-block |
+| `--primary-color #hex` | **Força cor primária** (6-dígitos hex). Override quando synthesizer escolhe errado |
+| `--accent-color #hex` | Força cor accent |
 | `--from-phase N` | Pula fases anteriores (debug / re-rodar parte do pipeline) |
 | `--batch arquivo.txt` | Processa N URLs em paralelo |
 | `--verbose` / `--quiet` / `--silent` | Controla verbosidade |
@@ -242,9 +246,10 @@ lp-forge/
 
 - [x] **v0.1.0** — Pipeline completo end-to-end, 6 direções, anti-slop
 - [x] **v0.1.1** — LLM-driven analysis + copywriter, Playwright fallback, soft-success
-- [ ] **v0.2** — Patch prompt design-md OpenAI-friendly, chunked prompts, heuristic de cor por saturação, `--primary-color` override, brand-capture binary fetch
-- [ ] **v0.3** — English support, Nano Banana Pro fallback para logo, screenshot real do site fonte
-- [ ] **v1.0** — Multi-page crawl, integração UI MaquinaLP, Vercel deploy automatizado
+- [x] **v0.1.2** — Prompt OpenAI-friendly, logo via Playwright HTML parse, saturação-based color, `--primary-color` override, hero específico por categoria
+- [ ] **v0.2** — Chunked prompts pra sites grandes, multi-page crawl, Vercel deploy automatizado, batch UI
+- [ ] **v0.3** — English support, Nano Banana Pro fallback, screenshot real do site fonte como anexo
+- [ ] **v1.0** — Integração UI MaquinaLP (botão "Analisar + Redesenhar" no painel de leads)
 
 ## Custo típico
 

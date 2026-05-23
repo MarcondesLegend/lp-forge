@@ -64,6 +64,71 @@ async function run(ctx) {
       }
     }
 
+    // Strategy D: parse Playwright-rendered HTML for <img> tags with logo-ish alt/class (SPA case)
+    if (!logoPath) {
+      const renderedHtmlPath = path.join(inputsDir, "rendered.html");
+      if (fs.existsSync(renderedHtmlPath)) {
+        try {
+          const cheerio = require("cheerio");
+          const html = fs.readFileSync(renderedHtmlPath, "utf8");
+          const $ = cheerio.load(html);
+          // Look for <img> in header/nav whose alt/class/src contains "logo"
+          const candidates = [];
+          $('header img, nav img, [class*=header] img, [class*=navbar] img').each((_, el) => {
+            const $el = $(el);
+            const alt = ($el.attr("alt") || "").toLowerCase();
+            const cls = ($el.attr("class") || "").toLowerCase();
+            const src = $el.attr("src") || "";
+            if (!src) return;
+            // Score: alt/class with "logo" wins; first <img> in header is also a candidate
+            const score = (alt.includes("logo") ? 3 : 0) +
+                          (cls.includes("logo") ? 3 : 0) +
+                          (src.toLowerCase().includes("logo") ? 2 : 0);
+            candidates.push({ src, alt, cls, score });
+          });
+          // Sort by score, take best
+          candidates.sort((a, b) => b.score - a.score);
+          const best = candidates[0];
+          if (best && best.score > 0) {
+            // Resolve relative URLs
+            let absoluteUrl = best.src;
+            if (!absoluteUrl.startsWith("http")) {
+              try { absoluteUrl = new URL(best.src, ctx.url).href; }
+              catch { absoluteUrl = null; }
+            }
+            if (absoluteUrl) {
+              try {
+                const axios = require("axios");
+                const resp = await axios.get(absoluteUrl, {
+                  responseType: "arraybuffer",
+                  headers: { "User-Agent": "lp-forge/0.1" },
+                  timeout: 15000
+                });
+                const buffer = Buffer.from(resp.data);
+                const ct = resp.headers["content-type"];
+                const v = validateImage(buffer, ct, absoluteUrl);
+                if (v.valid) {
+                  const mimeToExt = { "image/svg+xml": ".svg", "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif" };
+                  const ext = mimeToExt[v.mimeDetected] || ".bin";
+                  const target = path.join(brandDir, `logo${ext}`);
+                  fs.writeFileSync(target, buffer);
+                  logoPath = target;
+                  logoTier = 1;
+                  fs.writeFileSync(path.join(brandDir, "logo-source.txt"),
+                    `tier: 1\nstrategy: playwright-html-parse\nsource_url: ${absoluteUrl}\nalt: ${best.alt}\nscore: ${best.score}\nmime: ${v.mimeDetected}\nbytes: ${buffer.length}\nadopted: ${new Date().toISOString()}\n`, "utf8");
+                  logger.info("logo-tier1-fetched-from-playwright", { url: absoluteUrl, mime: v.mimeDetected });
+                }
+              } catch (e) {
+                logger.warn("logo-playwright-fetch-failed", { url: absoluteUrl, error: e.message });
+              }
+            }
+          }
+        } catch (e) {
+          logger.warn("logo-playwright-parse-failed", { error: e.message });
+        }
+      }
+    }
+
     // Strategy B: design-md writes metadata JSON (logo.json / favicon.json) with sourceUrl — fetch + adopt
     if (!logoPath) {
       const metaCandidates = ["logo.json", "favicon.json"];

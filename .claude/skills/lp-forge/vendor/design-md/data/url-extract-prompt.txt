@@ -445,6 +445,16 @@ Write these as DESIGN INTENT, not as extraction failures. The reader should unde
 
 Source URL: {{URL}}
 
-Write the DESIGN.md to: {{OUTPUT_PATH}}
+Target output path (provider will save it after receiving your response): {{OUTPUT_PATH}}
 
-Use the Write tool to create the file. Do not output the content to stdout.
+CRITICAL OUTPUT FORMAT — read carefully:
+1. Output ONLY the DESIGN.md content as your direct response.
+2. Begin your response with `---` (the YAML frontmatter opening).
+3. Include all required sections: YAML frontmatter, then `## Overview`, `## Colors`, `## Typography`, `## Layout`, `## Components`, etc.
+4. Do NOT prefix with explanation, do NOT say "Here is the DESIGN.md:", do NOT use code fences (```).
+5. Do NOT say "I will write the file" or "I cannot write files" — just emit the content directly.
+6. The provider integration (claude-cli, OpenAI, or OpenRouter) will save your response to the target path automatically.
+
+PATCHED BY lp-forge for cross-provider compatibility: original prompt referenced Claude's Write tool, which OpenAI models don't have. Direct-stdout output works for all providers.
+
+Begin your response NOW with `---`:

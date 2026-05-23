@@ -45,7 +45,7 @@ async function run(ctx) {
   const tokens = fs.existsSync(tokensPath) ? safeJson(fs.readFileSync(tokensPath, "utf8")) : {};
 
   // Resolve brand variables
-  const palette = extractPalette(tokens);
+  const palette = extractPalette(tokens, ctx);
   const fonts = pickFonts(tokens, direction);
   const slug = ctx.slug || "redesign";
   const businessName = businessInfo.businessName || ctx.businessName || "Negócio";
@@ -178,11 +178,12 @@ function renderTemplate(template, ctx) {
 
 function safeJson(s) { try { return JSON.parse(s); } catch { return {}; } }
 
-function extractPalette(tokens) {
+function extractPalette(tokens, ctx) {
   const colors = (tokens && tokens.colors) || {};
+  // CLI override (Tier 0) > token-derived > fallback default
   const palette = {
-    primary: colors.primary || colors.brand || "#1A1A1A",
-    accent: colors.accent || colors.secondary || "#666666",
+    primary: (ctx && ctx.primaryColor) || colors.primary || colors.brand || "#1A1A1A",
+    accent: (ctx && ctx.accentColor) || colors.accent || colors.secondary || "#666666",
     ink: colors.ink || colors.foreground || "#0A0A0A",
     surface: colors.surface || colors.background || "#FFFFFF"
   };

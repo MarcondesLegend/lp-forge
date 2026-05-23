@@ -187,15 +187,25 @@ async function synthesizeTokensFromStatic(ctx, logger) {
     const hexes = (detected.colors && Array.isArray(detected.colors.hex)) ? detected.colors.hex : [];
     const usage = (detected.colors && detected.colors.hex_usage) || {};
 
-    // Pick top non-grayscale hexes by usage
-    // Require 6-digit hex (skip RGBA shortcuts) and skip external-channel widgets
-    const sorted = Object.entries(usage)
-      .filter(([hex]) => /^#[0-9a-f]{6}$/i.test(hex) && !isGrayscale(hex) && !isPureWhiteOrBlack(hex) && !isExternalChannelColor(hex))
-      .sort((a, b) => b[1] - a[1])
-      .map(([hex]) => hex);
+    // Filter to valid brand-color candidates
+    const candidates = Object.entries(usage)
+      .filter(([hex, count]) => /^#[0-9a-f]{6}$/i.test(hex) && !isGrayscale(hex) && !isPureWhiteOrBlack(hex) && !isExternalChannelColor(hex) && count >= 2);
 
-    const primary = sorted[0] || hexes.find(h => !isGrayscale(h)) || "#1A1A1A";
-    const accent = sorted[1] || "#666666";
+    // Score by (saturation × 2 + log(usage_count)) — brand colors are typically
+    // moderately saturated AND used at least handful of times, not utility neutrals
+    const scored = candidates.map(([hex, count]) => {
+      const sat = saturationOf(hex);
+      const score = sat * 2 + Math.log10(Math.max(count, 1));
+      return { hex, count, sat, score };
+    }).sort((a, b) => b.score - a.score);
+
+    // CLI override wins (Tier 0)
+    const primary = (ctx.primaryColor) ||
+                    (scored[0] && scored[0].hex) ||
+                    (hexes.find(h => /^#[0-9a-f]{6}$/i.test(h) && !isGrayscale(h)) || "#1A1A1A");
+    const accent = (ctx.accentColor) ||
+                   pickAccent(scored, primary) ||
+                   "#666666";
 
     const tokens = {
       name: ctx.businessName || "(auto)",
@@ -234,6 +244,56 @@ async function synthesizeTokensFromStatic(ctx, logger) {
   } catch (e) {
     logger.warn("tokens-synthesis-failed", { error: e.message });
   }
+}
+
+/**
+ * Saturation (0-1) of a 6-digit hex via HSL conversion.
+ * Brand colors typically have moderate-to-high saturation (>0.3); UI neutrals are <0.15.
+ */
+function saturationOf(hex) {
+  const h = hex.toLowerCase().replace("#", "");
+  if (h.length !== 6) return 0;
+  const r = parseInt(h.slice(0, 2), 16) / 255;
+  const g = parseInt(h.slice(2, 4), 16) / 255;
+  const b = parseInt(h.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const lightness = (max + min) / 2;
+  if (max === min) return 0; // achromatic
+  const d = max - min;
+  return lightness > 0.5 ? d / (2 - max - min) : d / (max + min);
+}
+
+/**
+ * Pick accent: top-scored color that's NOT a near-shade of primary.
+ * Returns null if no good candidate.
+ */
+function pickAccent(scored, primary) {
+  for (const c of scored) {
+    if (c.hex === primary) continue;
+    if (hexDistance(c.hex, primary) > 60) return c.hex;
+  }
+  return null;
+}
+
+/**
+ * Euclidean distance between 2 hex colors in RGB space. 0-441 range.
+ */
+function hexDistance(a, b) {
+  const ax = parseHex(a), bx = parseHex(b);
+  if (!ax || !bx) return 999;
+  return Math.sqrt(
+    (ax.r - bx.r) ** 2 + (ax.g - bx.g) ** 2 + (ax.b - bx.b) ** 2
+  );
+}
+function parseHex(hex) {
+  const h = hex.toLowerCase().replace("#", "");
+  if (h.length !== 6) return null;
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16)
+  };
 }
 
 function isPureWhiteOrBlack(hex) {
