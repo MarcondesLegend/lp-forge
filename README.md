@@ -3,6 +3,7 @@
 > **URL → análise consultiva + redesign Next.js automatizado.**
 > Um skill do Claude Code que recebe um site qualquer e devolve (a) um documento de análise profissional e (b) um Next.js 15 redesenhado preservando a identidade visual do site original.
 
+[![CI](https://github.com/MarcondesLegend/lp-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcondesLegend/lp-forge/actions/workflows/ci.yml)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-v0.1.2-blue)](CHANGELOG.md)
@@ -261,11 +262,25 @@ Detalhamento por URL:
 - copywriter: 1 call, ~800 prompt + ~800 completion = $0.0006
 - **Total: ~$0.01 por URL**
 
+## Exemplos de output
+
+Veja [`examples/`](examples/) — 3 casos reais rodados end-to-end:
+
+| Caso | Hero gerado | Pasta |
+|---|---|---|
+| Orto Implant (clínica odontológica SPA) | "Implantes de qualidade em Nova Serrana" | [`examples/orto-implant/`](examples/orto-implant/) |
+| Clínica Mariana Lourenço (WordPress) | "Sorriso perfeito com tecnologia de ponta em São Paulo" | [`examples/clinica-mariana/`](examples/clinica-mariana/) |
+| Salão Piazza (salão de beleza) | "Beleza refinada em São Paulo, há 24 anos" | [`examples/salao-piazza/`](examples/salao-piazza/) |
+
+Cada exemplo inclui `analysis-report.md` (1300-1400 palavras), `brand-spec.md`, `business-spec.md`, e `page.tsx.example`.
+
 ## Documentação
 
 | Documento | Onde |
 |---|---|
 | Manual completo | [`.claude/skills/lp-forge/MANUAL.md`](.claude/skills/lp-forge/MANUAL.md) |
+| Changelog | [`CHANGELOG.md`](CHANGELOG.md) |
+| Contribuindo | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | Skill spec (Claude Code) | [`.claude/skills/lp-forge/SKILL.md`](.claude/skills/lp-forge/SKILL.md) |
 | Skill README | [`.claude/skills/lp-forge/README.md`](.claude/skills/lp-forge/README.md) |
 | Análise das 3 skills source | [`docs/research/skills-synthesis-lp-forge.md`](docs/research/skills-synthesis-lp-forge.md) |

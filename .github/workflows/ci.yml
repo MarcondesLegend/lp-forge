@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: .claude/skills/lp-forge/package-lock.json
+
+      - name: Install lp-forge deps (with vendored design-md)
+        working-directory: .claude/skills/lp-forge
+        run: npm ci --no-audit --no-fund
+
+      - name: Run lp-forge unit tests
+        working-directory: .claude/skills/lp-forge
+        run: npm test
+
+      - name: Verify CLI smoke (help + missing-flag exit)
+        working-directory: .claude/skills/lp-forge
+        run: |
+          node run.cjs --help > /dev/null
+          node run.cjs 2>&1 | grep "Either --url" || (echo "Expected usage error" && exit 1)
+
+      - name: Verify exit code constants integrity
+        working-directory: .claude/skills/lp-forge
+        run: |
+          node -e "const e = require('./lib/exit-codes.cjs'); console.log('Exit codes:', Object.keys(e.EXIT_CODES).length, 'frozen:', Object.isFrozen(e.EXIT_CODES));"
+
+  lint:
+    name: Structure lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required files exist
+        run: |
+          test -f README.md
+          test -f LICENSE
+          test -f CHANGELOG.md
+          test -f .claude/skills/lp-forge/SKILL.md
+          test -f .claude/skills/lp-forge/MANUAL.md
+          test -f .claude/skills/lp-forge/run.cjs
+          test -d .claude/skills/lp-forge/lib
+          test -d .claude/skills/lp-forge/data/prompts/pt-BR
+          test -d .claude/skills/lp-forge/templates/directions
+          test -f .claude/skills/lp-forge/vendor/design-md/VENDORED.md
+          echo "All structural files present"
+
+      - name: Check for secrets in tree
+        run: |
+          if grep -r "sk-proj-" --include="*.json" --include="*.md" --include="*.cjs" .; then
+            echo "::error::Potential secret found in tracked files"
+            exit 1
+          fi
+          echo "No secrets detected in tracked files"

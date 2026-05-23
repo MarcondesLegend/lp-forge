@@ -1,0 +1,47 @@
+import Image from "next/image";
+
+export default function Home() {
+  return (
+    <main className="min-h-screen">
+      <header className="container mx-auto px-6 py-6 flex items-center justify-between">
+        <Image src="/brand/logo.svg" alt="Orto Implant" width={120} height={40} priority />
+        <nav className="hidden md:flex gap-6 text-sm">
+          <a href="#servicos" className="hover:text-brand-primary">Serviços</a>
+          <a href="#sobre" className="hover:text-brand-primary">Sobre</a>
+          <a href="#contato" className="hover:text-brand-primary">Contato</a>
+        </nav>
+      </header>
+
+      <section className="container mx-auto px-6 py-20 md:py-32">
+        <h1 className="text-5xl md:text-7xl mb-6 max-w-3xl" dangerouslySetInnerHTML={{ __html: `Implantes de qualidade em Nova Serrana<span class="block">[INFERIDO] Atendimento humanizado e tecnologia avançada</span>` }} />
+        <p className="text-xl text-brand-ink/80 max-w-xl mb-8">Na Orto Implant, oferecemos soluções odontológicas premium para transformar seu sorriso com conforto e segurança.</p>
+        <a href="#contato" className="inline-block bg-brand-primary text-white px-8 py-3 rounded-md text-base hover:opacity-90">
+          Agendar avaliação
+        </a>
+      </section>
+
+      <section id="servicos" className="container mx-auto px-6 py-20 border-t border-brand-ink/10">
+        <h2 className="text-3xl md:text-4xl mb-10">Serviços</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <p className="text-brand-ink/60 col-span-3">Entre em contato para conhecer nossos serviços.</p>
+        </div>
+      </section>
+
+      <section id="sobre" className="container mx-auto px-6 py-20 border-t border-brand-ink/10">
+        <h2 className="text-3xl md:text-4xl mb-6">Sobre</h2>
+        <p className="text-lg max-w-2xl text-brand-ink/80">[INFERIDO] A Clínica Orto Implant é uma referência em odontologia em Nova Serrana, dedicada a proporcionar um atendimento de excelência. Nossa equipe é composta por profissionais altamente qualificados, prontos para oferecer soluções personalizadas que atendem às necessidades de cada paciente. Com um ambiente acolhedor e tecnologia de ponta, garantimos que sua experiência conosco seja confortável e segura.</p>
+      </section>
+
+      <section id="contato" className="container mx-auto px-6 py-20 border-t border-brand-ink/10 bg-brand-primary/5">
+        <h2 className="text-3xl md:text-4xl mb-6">Contato</h2>
+        <p><strong>Telefone:</strong> <a href="tel:5537999712030">5537999712030</a></p>
+        <p><strong>WhatsApp:</strong> <a href="https://wa.me/5537999712030">5537999712030</a></p>
+        <p><strong>Endereço:</strong> R. Ver. Lelis Camilo, 520 - Nogueira</p>
+      </section>
+
+      <footer className="container mx-auto px-6 py-10 text-sm text-brand-ink/60 border-t border-brand-ink/10">
+        © {new Date().getFullYear()} Orto Implant
+      </footer>
+    </main>
+  );
+}

@@ -1,0 +1,48 @@
+import Image from "next/image";
+
+export default function Home() {
+  return (
+    <main className="min-h-screen">
+      <header className="container mx-auto px-6 py-6 flex items-center justify-between">
+        <Image src="/brand/logo.svg" alt="Salão Piazza" width={120} height={40} priority />
+        <nav className="hidden md:flex gap-6 text-sm">
+          <a href="#servicos" className="hover:text-brand-primary">Serviços</a>
+          <a href="#sobre" className="hover:text-brand-primary">Sobre</a>
+          <a href="#contato" className="hover:text-brand-primary">Contato</a>
+        </nav>
+      </header>
+
+      <section className="container mx-auto px-6 py-20 md:py-32">
+        <h1 className="text-5xl md:text-7xl mb-6 max-w-3xl" dangerouslySetInnerHTML={{ __html: `Beleza refinada em São Paulo, há 24 anos<span class="block">[INFERIDO] Atendimento que valoriza cada cliente com carinho.</span>` }} />
+        <p className="text-xl text-brand-ink/80 max-w-xl mb-8">No Salão Piazza, oferecemos serviços de beleza que realçam sua essência e estilo. Agende sua experiência premium agora mesmo.</p>
+        <a href="#contato" className="inline-block bg-brand-primary text-white px-8 py-3 rounded-md text-base hover:opacity-90">
+          Agendar horário
+        </a>
+      </section>
+
+      <section id="servicos" className="container mx-auto px-6 py-20 border-t border-brand-ink/10">
+        <h2 className="text-3xl md:text-4xl mb-10">Serviços</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <p className="text-brand-ink/60 col-span-3">Entre em contato para conhecer nossos serviços.</p>
+        </div>
+      </section>
+
+      <section id="sobre" className="container mx-auto px-6 py-20 border-t border-brand-ink/10">
+        <h2 className="text-3xl md:text-4xl mb-6">Sobre</h2>
+        <p className="text-lg max-w-2xl text-brand-ink/80">[INFERIDO] O Salão Piazza é um espaço dedicado à beleza e bem-estar, onde cada detalhe é pensado para proporcionar uma experiência única. Com 24 anos de tradição, nossa equipe é composta por profissionais apaixonados que buscam sempre a excelência no atendimento. Aqui, cada cliente é tratado com atenção e carinho, criando laços que vão além do salão.</p>
+      </section>
+
+      <section id="contato" className="container mx-auto px-6 py-20 border-t border-brand-ink/10 bg-brand-primary/5">
+        <h2 className="text-3xl md:text-4xl mb-6">Contato</h2>
+        <p><strong>Telefone:</strong> <a href="tel:554598596254">554598596254</a></p>
+        <p><strong>WhatsApp:</strong> <a href="https://wa.me/554598596254">554598596254</a></p>
+        <p><strong>Email:</strong> <a href="mailto:contato@salaopiazza.com.br">contato@salaopiazza.com.br</a></p>
+        <p><strong>Endereço:</strong> Rua Guarani, 2643 - Jardim La Salle</p>
+      </section>
+
+      <footer className="container mx-auto px-6 py-10 text-sm text-brand-ink/60 border-t border-brand-ink/10">
+        © {new Date().getFullYear()} Salão Piazza
+      </footer>
+    </main>
+  );
+}
