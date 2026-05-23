@@ -13,7 +13,7 @@ export default function Home() {
       </header>
 
       <section className="container mx-auto px-6 py-20 md:py-32">
-        <h1 className="text-5xl md:text-7xl mb-6 max-w-3xl">{{heroHeadline}}</h1>
+        <h1 className="text-5xl md:text-7xl mb-6 max-w-3xl" dangerouslySetInnerHTML={{ __html: `{{heroHeadline}}` }} />
         <p className="text-xl text-brand-ink/80 max-w-xl mb-8">{{heroSubheadline}}</p>
         <a href="#contato" className="inline-block bg-brand-primary text-white px-8 py-3 rounded-md text-base hover:opacity-90">
           {{heroCta}}

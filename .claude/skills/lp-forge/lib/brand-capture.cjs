@@ -41,12 +41,11 @@ async function run(ctx) {
   let logoPath = null;
 
   if (fs.existsSync(inputsDir)) {
-    // design-md saves favicon/logo candidates in inputs/
+    // Strategy A: design-md sometimes writes binary directly
     const candidates = ["logo.svg", "logo.png", "favicon.svg", "favicon.png", "favicon.ico"];
     for (const c of candidates) {
       const p = path.join(inputsDir, c);
       if (fs.existsSync(p)) {
-        // Validate before adopting
         const buffer = fs.readFileSync(p);
         const v = validateImage(buffer, null, ctx.url);
         if (v.valid) {
@@ -55,15 +54,53 @@ async function run(ctx) {
           fs.copyFileSync(p, target);
           logoPath = target;
           logoTier = 1;
-          fs.writeFileSync(
-            path.join(brandDir, "logo-source.txt"),
-            `tier: 1\nstrategy: design-md-inputs\nsource: ${c}\nadopted: ${new Date().toISOString()}\n`,
-            "utf8"
-          );
+          fs.writeFileSync(path.join(brandDir, "logo-source.txt"),
+            `tier: 1\nstrategy: design-md-inputs-binary\nsource: ${c}\nadopted: ${new Date().toISOString()}\n`, "utf8");
           logger.info("logo-tier1-found", { source: c, mime: v.mimeDetected });
           break;
         } else {
           logger.warn("logo-candidate-rejected", { source: c, reason: v.reason });
+        }
+      }
+    }
+
+    // Strategy B: design-md writes metadata JSON (logo.json / favicon.json) with sourceUrl — fetch + adopt
+    if (!logoPath) {
+      const metaCandidates = ["logo.json", "favicon.json"];
+      for (const meta of metaCandidates) {
+        const metaPath = path.join(inputsDir, meta);
+        if (!fs.existsSync(metaPath)) continue;
+        try {
+          const data = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+          const url = data.sourceUrl;
+          if (!url) continue;
+          logger.info("logo-fetching-from-design-md-meta", { meta, sourceUrl: url });
+          // Download with axios
+          const axios = require("axios");
+          const resp = await axios.get(url, {
+            responseType: "arraybuffer",
+            headers: { "User-Agent": "lp-forge/0.1" },
+            timeout: 15000
+          });
+          const buffer = Buffer.from(resp.data);
+          const contentType = resp.headers["content-type"];
+          const v = validateImage(buffer, contentType, url);
+          if (!v.valid) {
+            logger.warn("logo-fetched-rejected", { source: meta, reason: v.reason });
+            continue;
+          }
+          const mimeToExt = { "image/svg+xml": ".svg", "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif" };
+          const ext = mimeToExt[v.mimeDetected] || ".bin";
+          const target = path.join(brandDir, `logo${ext}`);
+          fs.writeFileSync(target, buffer);
+          logoPath = target;
+          logoTier = 1;
+          fs.writeFileSync(path.join(brandDir, "logo-source.txt"),
+            `tier: 1\nstrategy: design-md-meta-fetch\nsource_meta: ${meta}\nsource_url: ${url}\nmime: ${v.mimeDetected}\nbytes: ${buffer.length}\nadopted: ${new Date().toISOString()}\n`, "utf8");
+          logger.info("logo-tier1-fetched", { source: meta, mime: v.mimeDetected, bytes: buffer.length });
+          break;
+        } catch (e) {
+          logger.warn("logo-meta-fetch-failed", { meta, error: e.message });
         }
       }
     }

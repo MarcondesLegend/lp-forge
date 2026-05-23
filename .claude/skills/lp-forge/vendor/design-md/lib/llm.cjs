@@ -9,23 +9,20 @@
 
 const claudeCli = require("./providers/claude-cli.cjs");
 const openrouter = require("./providers/openrouter.cjs");
+const openai = require("./providers/openai.cjs"); // ADDED BY lp-forge
 
-// ── Per-provider model defaults + allow-list ────────────────────────
-// Operator policy (2026-04-27):
-//   - claude-cli (local): Opus permitted (operator's own quota)
-//   - openrouter (API):    Haiku-only (cost discipline; 240× cheaper than Opus)
-// Empirical: 1 Haiku run = $0.02 / score 86 vs 7 Opus runs avg $4.00 / score 88.
 const PROVIDER_DEFAULTS = {
-  "claude-cli":  { default_model: "claude-opus-4-7",          allowed: null /* any */ },
-  "openrouter":  { default_model: "anthropic/claude-haiku-4-5", allowed: [/haiku/i] /* haiku family only */ },
+  "claude-cli":  { default_model: "claude-opus-4-7",          allowed: null },
+  "openrouter":  { default_model: "anthropic/claude-haiku-4-5", allowed: [/haiku/i] },
+  "openai":      { default_model: "gpt-4o-mini", allowed: [/^gpt-4o(-mini)?$/, /^gpt-4\.1/, /^o3-mini/, /^gpt-4o-mini-/] } // ADDED BY lp-forge
 };
 
-// ── Provider auto-detection (AC1.5) ─────────────────────────────────
 function detectProvider(options) {
-  if (options && options.provider) return options.provider; // explicit override
-  if (process.env.VERCEL === "1") return "openrouter";     // production
-  if (process.env.OPENROUTER_API_KEY) return "openrouter"; // local opt-in
-  return "claude-cli";                                     // local default
+  if (options && options.provider) return options.provider;
+  if (process.env.VERCEL === "1") return "openrouter";
+  if (process.env.OPENROUTER_API_KEY) return "openrouter";
+  if (process.env.OPENAI_API_KEY) return "openai"; // ADDED BY lp-forge
+  return "claude-cli";
 }
 
 // ── Provider+Model policy gate (NEW) ────────────────────────────────
@@ -74,6 +71,15 @@ async function invokeLlm(promptText, options = {}) {
       process.exit(6);
     }
     return openrouter.invoke(promptText, effectiveOptions);
+  }
+
+  // openai (ADDED BY lp-forge)
+  if (provider === "openai") {
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("[!] OpenAI selected but OPENAI_API_KEY not set.");
+      process.exit(6);
+    }
+    return openai.invoke(promptText, effectiveOptions);
   }
 
   // claude-cli

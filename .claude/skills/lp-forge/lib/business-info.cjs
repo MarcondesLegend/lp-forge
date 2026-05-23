@@ -125,9 +125,9 @@ function extractContact(md) {
   if (waMatch) contact.whatsapp = (waMatch[1] || waMatch[2] || "").trim();
   const emailMatch = md.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
   if (emailMatch) contact.email = emailMatch[0];
-  // Address — coarse heuristic
-  const addrMatch = md.match(/(?:Rua|Avenida|Av\.|R\.)\s+[^,\n]+,?\s*\d+/i);
-  if (addrMatch) contact.address = addrMatch[0].slice(0, 120);
+  // Address — require name + number + at least 4 chars between
+  const addrMatch = md.match(/(?:Rua|Avenida|Av\.|R\.)\s+[A-ZÀ-Ÿ][\wÀ-ÿ.\-\s]{4,80}?(?:,\s*\d+|\s+\d{1,5})(?:\s*[\-,]\s*[\wÀ-ÿ.\s]{3,40})?/);
+  if (addrMatch) contact.address = addrMatch[0].slice(0, 150).replace(/\s+/g, " ").trim();
   return contact;
 }
 

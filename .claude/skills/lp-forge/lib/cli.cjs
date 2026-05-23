@@ -11,7 +11,7 @@ const { EXIT_CODES } = require("./exit-codes.cjs");
 
 const KNOWN_DIRECTIONS = ["editorial", "industrial", "luxury", "playful", "brutalist", "organic"];
 const KNOWN_LANGS = ["pt-BR"];
-const KNOWN_PROVIDERS = ["claude-cli", "openrouter"];
+const KNOWN_PROVIDERS = ["claude-cli", "openrouter", "openai"];
 
 function buildProgram() {
   const program = new Command();

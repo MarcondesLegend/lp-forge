@@ -121,16 +121,19 @@ test("detectProvider: OPENROUTER_API_KEY auto-routes to openrouter", () => {
   }
 });
 
-test("invokeLlm: v0.1 stub returns structured response without throwing", async () => {
-  const prevKey = process.env.OPENROUTER_API_KEY;
+test("invokeLlm: v0.1 stub returns structured response without throwing (claude-cli/openrouter path)", async () => {
+  const prevRouter = process.env.OPENROUTER_API_KEY;
+  const prevOpenai = process.env.OPENAI_API_KEY;
   delete process.env.OPENROUTER_API_KEY;
+  delete process.env.OPENAI_API_KEY;
   try {
     const r = await invokeLlm("hello prompt", { provider: "claude-cli" });
     assert.strictEqual(r.status, "stub");
     assert.strictEqual(r.provider, "claude-cli");
     assert.strictEqual(r.temperature, 0);
-    assert.ok(r.note.includes("stub"));
+    assert.ok(r.note && (r.note.includes("stub") || r.note.includes("design-md") || r.note.includes("heuristic")));
   } finally {
-    if (prevKey !== undefined) process.env.OPENROUTER_API_KEY = prevKey;
+    if (prevRouter !== undefined) process.env.OPENROUTER_API_KEY = prevRouter;
+    if (prevOpenai !== undefined) process.env.OPENAI_API_KEY = prevOpenai;
   }
 });

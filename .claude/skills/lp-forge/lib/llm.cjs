@@ -11,12 +11,33 @@
 // ────────────────────────────────────────────────────────────────────
 "use strict";
 
+const path = require("path");
+const fs = require("fs");
 const { EXIT_CODES } = require("./exit-codes.cjs");
 
-// ── Provider defaults + allow-list (operator policy mirrored from design-md)
+// Auto-load .env.local from project root (best-effort — runs once)
+(function loadEnv() {
+  try {
+    let dir = __dirname;
+    for (let i = 0; i < 6 && dir; i++) {
+      const envPath = path.join(dir, ".env.local");
+      if (fs.existsSync(envPath)) {
+        try { require("dotenv").config({ path: envPath }); }
+        catch { /* dotenv may not be installed in vendor-only contexts */ }
+        return;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  } catch { /* best-effort */ }
+})();
+
+// ── Provider defaults + allow-list (operator policy mirrored from design-md + OpenAI added)
 const PROVIDER_DEFAULTS = Object.freeze({
   "claude-cli": { default_model: "claude-opus-4-7", allowed: null /* any */ },
-  "openrouter": { default_model: "anthropic/claude-haiku-4-5", allowed: [/haiku/i] }
+  "openrouter": { default_model: "anthropic/claude-haiku-4-5", allowed: [/haiku/i] },
+  "openai": { default_model: "gpt-4o-mini", allowed: [/^gpt-4o(-mini)?$/, /^gpt-4\.1/, /^o3-mini/, /^gpt-4o-mini-2024/] }
 });
 
 const PRODUCTION_TEMPERATURE = 0;
@@ -25,6 +46,7 @@ function detectProvider(options = {}) {
   if (options.provider) return options.provider;
   if (process.env.VERCEL === "1") return "openrouter";
   if (process.env.OPENROUTER_API_KEY) return "openrouter";
+  if (process.env.OPENAI_API_KEY) return "openai";
   return "claude-cli";
 }
 
@@ -69,9 +91,8 @@ function enforceTemperaturePolicy(options = {}) {
 }
 
 /**
- * Main dispatcher. Story 2.1 returns a structured "not implemented" response
- * so callers can integrate the contract without crashing. Story 2.2 wires
- * actual provider invocation through the vendored design-md.
+ * Main dispatcher. Routes to provider-specific invoke based on detectProvider().
+ * Returns: { status, provider, model, temperature, stdout, stderr, usage?, finishReason? }
  */
 async function invokeLlm(promptText, options = {}) {
   const provider = detectProvider(options);
@@ -87,18 +108,36 @@ async function invokeLlm(promptText, options = {}) {
     throw err;
   }
 
-  // v0.1 stub: integrate without invoking. Story 2.2 replaces this branch with
-  // a child_process spawn of vendor/design-md/run.cjs (Aria Amendment A-1).
-  return {
-    status: "stub",
-    provider,
-    model: policyResult.model,
-    temperature,
-    stdout: "",
-    stderr: "",
-    note: "lp-forge v0.1 — LLM invocation is a stub; Story 2.2 wires real providers via vendored design-md.",
-    promptLength: promptText ? promptText.length : 0
-  };
+  if (provider === "openai") {
+    if (!process.env.OPENAI_API_KEY) {
+      const err = new Error("OpenAI selected but OPENAI_API_KEY not set in env or .env.local.");
+      err.code = EXIT_CODES.PROVIDER_MISCONFIG;
+      throw err;
+    }
+    const openai = require("./providers/openai.cjs");
+    return openai.invoke(promptText, { ...options, model: policyResult.model, temperature });
+  }
+
+  if (provider === "claude-cli" || provider === "openrouter") {
+    // For these providers, lp-forge v0.1 ships the contract scaffold only.
+    // The vendored design-md handles its own LLM calls during phase 1.
+    // Phase 5+ (analysis, generator copy) currently use heuristic baselines —
+    // switching to live LLM here requires per-phase wiring (future story).
+    return {
+      status: "stub",
+      provider,
+      model: policyResult.model,
+      temperature,
+      stdout: "",
+      stderr: "",
+      note: `lp-forge v0.1 — ${provider} integration goes through vendored design-md (phase 1). Phase 5+ uses heuristic baseline.`,
+      promptLength: promptText ? promptText.length : 0
+    };
+  }
+
+  const err = new Error(`Unknown provider routing: ${provider}`);
+  err.code = EXIT_CODES.USAGE_ERROR;
+  throw err;
 }
 
 module.exports = {

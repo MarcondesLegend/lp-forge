@@ -56,15 +56,23 @@ async function run(ctx) {
   fs.mkdirSync(path.join(redesignDir, "components"), { recursive: true });
   fs.mkdirSync(path.join(redesignDir, "public", "brand"), { recursive: true });
 
-  // Build copy bundle
-  const copy = buildCopy({
+  // Build copy bundle (LLM-driven primary, fallback heuristic) — needs pageContent for grounding
+  const pageMd = (() => { try { return fs.readFileSync(path.join(ctx.outDir, "inputs", "page.md"), "utf8"); } catch { return ""; } })();
+  const copy = await buildCopy({
     businessName,
     services: businessInfo.services || [],
     contact: businessInfo.contact || {},
+    hours: businessInfo.hours || {},
+    socialProof: businessInfo.socialProof || [],
     category: businessInfo.category || ctx.category,
     city: businessInfo.city || ctx.city,
-    direction
+    direction,
+    pageContent: pageMd,
+    provider: ctx.provider,
+    model: ctx.model,
+    lang: ctx.lang || "pt-BR"
   });
+  logger.info("copywriter-source", { source: copy._source });
 
   // ── Render templates ──
   const seoTitle = `${businessName} — ${copy.heroSubheadline.split("\n")[0]}`.slice(0, 60);

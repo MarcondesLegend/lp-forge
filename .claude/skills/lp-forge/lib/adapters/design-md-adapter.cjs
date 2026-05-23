@@ -12,6 +12,7 @@ const path = require("path");
 
 const { EXIT_CODES } = require("../exit-codes.cjs");
 const { getLogger } = require("../logger.cjs");
+const { needsEnrichment, isPlaywrightInstalled, run: runPlaywright } = require("../playwright-fallback.cjs");
 
 const VENDOR_ROOT = path.join(__dirname, "..", "..", "vendor", "design-md");
 const VENDOR_RUN = path.join(VENDOR_ROOT, "run.cjs");
@@ -67,7 +68,7 @@ async function run(ctx) {
       reject(e);
     });
 
-    proc.on("close", (code) => {
+    proc.on("close", async (code) => {
       const result = {
         designMd: path.join(ctx.outDir, "DESIGN.md"),
         tokens: path.join(ctx.outDir, "tokens.json"),
@@ -77,6 +78,11 @@ async function run(ctx) {
         exitCode: code
       };
 
+      // After design-md runs (success OR partial), auto-enrich page.md if it's too thin (SPA detection).
+      // This runs regardless of whether design-md fully succeeded — even if LLM failed, the static
+      // outputs (CSS vars, fonts) are usually fine. The body content is what needs Playwright.
+      const enrichmentAttempted = await maybeEnrichWithPlaywright(ctx, result, logger);
+
       if (code === 0) {
         return resolve(result);
       }
@@ -84,10 +90,29 @@ async function run(ctx) {
       // Map design-md exit codes to lp-forge codes
       const lpCode = mapDesignMdExitCode(code);
 
+      // Soft-success: if design-md failed only on LLM (exit 5 or 2) but we have static outputs
+      // (tokens-detected.json + page.md OR Playwright-enriched body), continue the pipeline.
+      // Phases 2+ work fine without DESIGN.md if we have tokens + page content.
+      const hasStaticTokens = fs.existsSync(path.join(ctx.outDir, "inputs", "tokens-detected.json"));
+      const hasPageContent = fs.existsSync(result.pageMd) && fs.statSync(result.pageMd).size > 100;
+      if ((code === 5 || code === 2) && hasStaticTokens && (hasPageContent || enrichmentAttempted)) {
+        await synthesizeTokensFromStatic(ctx, logger);
+        logger.warn("design-md-llm-failed-but-static-ok-continuing", {
+          designMdExit: code,
+          enrichmentAttempted,
+          hasPageContent,
+          note: "Continuing with static-only extraction. Analysis quality will be moderate."
+        });
+        return resolve(result);
+      }
+
       if (lpCode === EXIT_CODES.CONTENT_GATE && ctx.allowPlaywright) {
         logger.info("design-md-content-gate-with-playwright-fallback", { designMdExit: code });
-        // Delegate to playwright fallback
-        return require("../playwright-fallback.cjs").run(ctx).then(resolve).catch(reject);
+        try {
+          await runPlaywright(ctx);
+          await synthesizeTokensFromStatic(ctx, logger);
+          return resolve(result);
+        } catch (e) { return reject(e); }
       }
 
       const e = new Error(`design-md exited with code ${code}: ${stderr.trim().slice(0, 500)}`);
@@ -110,6 +135,142 @@ function mapDesignMdExitCode(code) {
     case 7: return EXIT_CODES.HTTP_ERROR;
     default: return EXIT_CODES.HTTP_ERROR;
   }
+}
+
+/**
+ * If inputs/page.md is too thin (SPA detection) AND Playwright is available, render the page
+ * and overwrite page.md with the rendered markdown.
+ * Returns true if Playwright actually ran (regardless of success).
+ */
+async function maybeEnrichWithPlaywright(ctx, result, logger) {
+  if (!needsEnrichment(result.pageMd)) return false;
+
+  if (!isPlaywrightInstalled()) {
+    logger.warn("playwright-enrich-skip", {
+      reason: "page.md is thin (SPA suspected) but Playwright not installed",
+      hint: "Run: cd .claude/skills/lp-forge && npm run install-playwright"
+    });
+    return false;
+  }
+
+  if (!ctx.allowPlaywright) {
+    logger.warn("playwright-enrich-skip", {
+      reason: "page.md is thin (SPA suspected) — pass --allow-playwright to enable enrichment"
+    });
+    return false;
+  }
+
+  logger.info("playwright-enrich-start", { reason: "page.md is too short (SPA suspected)" });
+  try {
+    await runPlaywright(ctx);
+    return true;
+  } catch (e) {
+    logger.warn("playwright-enrich-failed", { error: e.message });
+    return false;
+  }
+}
+
+/**
+ * If tokens.json is missing (because LLM failed to write DESIGN.md), synthesize a minimal one
+ * from inputs/tokens-detected.json which design-md static phase 3 ALWAYS produces.
+ */
+async function synthesizeTokensFromStatic(ctx, logger) {
+  const tokensPath = path.join(ctx.outDir, "tokens.json");
+  if (fs.existsSync(tokensPath)) return;
+
+  const detectedPath = path.join(ctx.outDir, "inputs", "tokens-detected.json");
+  const fingerprintPath = path.join(ctx.outDir, "style-fingerprint.json");
+  if (!fs.existsSync(detectedPath)) return;
+
+  try {
+    const detected = JSON.parse(fs.readFileSync(detectedPath, "utf8"));
+    const hexes = (detected.colors && Array.isArray(detected.colors.hex)) ? detected.colors.hex : [];
+    const usage = (detected.colors && detected.colors.hex_usage) || {};
+
+    // Pick top non-grayscale hexes by usage
+    // Require 6-digit hex (skip RGBA shortcuts) and skip external-channel widgets
+    const sorted = Object.entries(usage)
+      .filter(([hex]) => /^#[0-9a-f]{6}$/i.test(hex) && !isGrayscale(hex) && !isPureWhiteOrBlack(hex) && !isExternalChannelColor(hex))
+      .sort((a, b) => b[1] - a[1])
+      .map(([hex]) => hex);
+
+    const primary = sorted[0] || hexes.find(h => !isGrayscale(h)) || "#1A1A1A";
+    const accent = sorted[1] || "#666666";
+
+    const tokens = {
+      name: ctx.businessName || "(auto)",
+      colors: {
+        primary,
+        accent,
+        ink: "#1A1A1A",
+        secondary: "#666666",
+        surface: "#FFFFFF",
+        background: "#F8F9FA"
+      },
+      typography: {},
+      _meta: {
+        source: "synthesized from tokens-detected.json (LLM phase 6 failed; static phase 3 ok)",
+        synthesizedAt: new Date().toISOString()
+      }
+    };
+
+    fs.writeFileSync(tokensPath, JSON.stringify(tokens, null, 2), "utf8");
+    logger.info("tokens-synthesized-from-static", { primary, accent, sortedCount: sorted.length });
+
+    // Also synthesize style-fingerprint if missing — design-md prints it but doesn't always file it
+    if (!fs.existsSync(fingerprintPath)) {
+      const stackPath = path.join(ctx.outDir, "inputs", "stack-summary.json");
+      let archetype = "unknown";
+      let confidence = 0;
+      if (fs.existsSync(stackPath)) {
+        try {
+          const stack = JSON.parse(fs.readFileSync(stackPath, "utf8"));
+          archetype = stack.archetype || archetype;
+          confidence = stack.archetype_confidence || confidence;
+        } catch { /* best effort */ }
+      }
+      fs.writeFileSync(fingerprintPath, JSON.stringify({ archetype, confidence, _meta: { synthesized: true } }, null, 2), "utf8");
+    }
+  } catch (e) {
+    logger.warn("tokens-synthesis-failed", { error: e.message });
+  }
+}
+
+function isPureWhiteOrBlack(hex) {
+  const h = hex.toLowerCase();
+  return h === "#000000" || h === "#ffffff";
+}
+
+// Colors known to belong to external channel widgets (WhatsApp, Facebook, etc.) —
+// these often saturate hex_usage counts when the site has floating chat buttons,
+// but they are NOT the brand color. Excluded from primary/accent candidates.
+const EXTERNAL_CHANNEL_HEXES = new Set([
+  "#25d366", // WhatsApp green
+  "#1ebea5",
+  "#128c7e", // WhatsApp dark
+  "#075e54",
+  "#3b5998", // Facebook blue
+  "#1877f2", // Facebook newer blue
+  "#1da1f2", // Twitter blue
+  "#e1306c", // Instagram pink
+  "#ff0000", // YouTube red
+  "#ff5722"  // Often Telegram/share buttons
+]);
+
+function isExternalChannelColor(hex) {
+  return EXTERNAL_CHANNEL_HEXES.has(hex.toLowerCase());
+}
+
+function isGrayscale(hex) {
+  // #RRGGBB — compare R≈G≈B (tolerance 15)
+  if (!hex.startsWith("#")) return false;
+  let h = hex.slice(1);
+  if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  if (h.length < 6) return false;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15;
 }
 
 module.exports = { name: "fetch-extract", run, mapDesignMdExitCode };
